@@ -74,7 +74,7 @@ export default function IPTVApp() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      await fetch(channel.url, { method: "HEAD", signal: controller.signal });
+      await fetch(channel.url, { method: 'HEAD', mode: 'no-cors' });
       clearTimeout(timeout);
       updateStatus(index, "Available");
     } catch {
