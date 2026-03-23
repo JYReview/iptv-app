@@ -74,20 +74,17 @@ export default function IPTVApp() {
     updateStatus(index, "Checking...");
 
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      // Call backend API to check the channel
+      const res = await fetch(
+        `/api/check-stream?url=${encodeURIComponent(channel.url)}`,
+      );
 
-      await fetch(channel.url, {
-        method: "GET",
-        mode: "no-cors",
-        signal: controller.signal,
-      });
+      const data = await res.json();
 
-      clearTimeout(timeout);
-
-      // Assume it's available if no error thrown
-      updateStatus(index, "Available");
-    } catch {
+      // Update status based on backend response
+      updateStatus(index, data.status); // "Available" or "Not Working"
+    } catch (err) {
+      // Network or other error
       updateStatus(index, "Not Working");
     }
   };
