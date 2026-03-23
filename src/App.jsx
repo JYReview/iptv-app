@@ -38,6 +38,9 @@ export default function IPTVApp() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [playlistUrl, setPlaylistUrl] = useState(
+    "https://iptv-org.github.io/iptv/languages/zho.m3u",
+  );
   const pageSize = 20;
 
   // Parse M3U
@@ -59,9 +62,7 @@ export default function IPTVApp() {
   // Load playlist
   const loadPlaylist = async () => {
     setLoading(true);
-    const res = await fetch(
-      "https://iptv-org.github.io/iptv/languages/zho.m3u",
-    );
+    const res = await fetch(playlistUrl);
     const text = await res.text();
     const parsed = parseM3U(text);
     setChannels(parsed);
@@ -71,11 +72,20 @@ export default function IPTVApp() {
   // Check a single stream
   const checkStream = async (channel, index) => {
     updateStatus(index, "Checking...");
+
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      await fetch(channel.url, { method: 'HEAD', mode: 'no-cors' });
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      await fetch(channel.url, {
+        method: "GET",
+        mode: "no-cors",
+        signal: controller.signal,
+      });
+
       clearTimeout(timeout);
+
+      // Assume it's available if no error thrown
       updateStatus(index, "Available");
     } catch {
       updateStatus(index, "Not Working");
@@ -118,6 +128,22 @@ export default function IPTVApp() {
   return (
     <div className="p-6 font-sans">
       <h1 className="text-3xl font-bold mb-6">IPTV App - Stream Checker</h1>
+
+      <div className="flex gap-2 mb-4">
+        <input
+          type="text"
+          value={playlistUrl}
+          onChange={(e) => setPlaylistUrl(e.target.value)}
+          placeholder="M3U Playlist URL"
+          className="border rounded px-3 py-2 flex-grow"
+        />
+        <button
+          onClick={loadPlaylist}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Load Playlist
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
         <button
