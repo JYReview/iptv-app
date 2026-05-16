@@ -1,4 +1,11 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import FilterPill from "./ui/FilterPill.jsx";
 import SearchBar from "./ui/SearchBar.jsx";
 import StatusBadge from "./ui/StatusBadge.jsx";
@@ -14,7 +21,12 @@ import {
 import { buildSearchIndex } from "../utils/filterUtils.js";
 import { useTVFocus } from "../hooks/useTVFocus.jsx";
 
-const STATUS_OPTIONS = ["Not Started", "Checking...", "Available", "Not Working"];
+const STATUS_OPTIONS = [
+  "Not Started",
+  "Checking...",
+  "Available",
+  "Not Working",
+];
 
 function getPlaylistName(url) {
   try {
@@ -54,32 +66,32 @@ export default function IPTVChecker() {
   }, []);
 
   const scheduleStatusUpdate = useCallback((index, status) => {
-  statusUpdateQueue.current.push({ index, status });
+    statusUpdateQueue.current.push({ id: index, status });
 
-  if (statusFlushTimer.current) return;
+    if (statusFlushTimer.current) return;
 
-  statusFlushTimer.current = window.setTimeout(() => {
-    const updates = [...statusUpdateQueue.current];
+    statusFlushTimer.current = window.setTimeout(() => {
+      const updates = [...statusUpdateQueue.current];
 
-    statusUpdateQueue.current = [];
-    statusFlushTimer.current = null;
+      statusUpdateQueue.current = [];
+      statusFlushTimer.current = null;
 
-    setChannels((previousChannels) => {
-      const nextChannels = [...previousChannels];
+      setChannels((previousChannels) => {
+        const updatesMap = new Map(
+          updates.map(({ id, status }) => [id, status]),
+        );
 
-      updates.forEach(({ index: channelIndex, status: channelStatus }) => {
-        if (nextChannels[channelIndex]) {
-          nextChannels[channelIndex] = {
-            ...nextChannels[channelIndex],
-            status: channelStatus,
+        return previousChannels.map((channel) => {
+          if (!updatesMap.has(channel.id)) return channel;
+
+          return {
+            ...channel,
+            status: updatesMap.get(channel.id),
           };
-        }
+        });
       });
-
-      return nextChannels;
-    });
-  }, 100);
-}, []);
+    }, 100);
+  }, []);
 
   const loadPlaylist = useCallback(
     async (url = playlistUrl) => {
@@ -99,7 +111,11 @@ export default function IPTVChecker() {
         setSelectedChannel(null);
         setSearch("");
         setStatusFilter("");
-        setError(parsed.length === 0 ? "Playlist did not contain valid channels." : null);
+        setError(
+          parsed.length === 0
+            ? "Playlist did not contain valid channels."
+            : null,
+        );
         setPlaylistUrl(url);
       } catch (err) {
         setChannels([]);
@@ -114,7 +130,11 @@ export default function IPTVChecker() {
 
   const handleSavePlaylist = useCallback(() => {
     if (!playlistUrl || !channels.length) return;
-    const updated = savePlaylist(playlistUrl, getPlaylistName(playlistUrl), channels);
+    const updated = savePlaylist(
+      playlistUrl,
+      getPlaylistName(playlistUrl),
+      channels,
+    );
     setSavedPlaylists(updated);
   }, [channels, playlistUrl]);
 
@@ -138,43 +158,42 @@ export default function IPTVChecker() {
 
   const filteredChannels = useMemo(() => {
     const normalizedSearch = deferredSearch.trim().toLowerCase();
-
+    
     return channels.filter((channel) => {
       const matchesKeyword =
-        !normalizedSearch ||
-        channel.searchIndex?.includes(normalizedSearch) ||
-        channel.url.toLowerCase().includes(normalizedSearch);
+        normalizedSearch === ""
+          ? true
+          : channel.name?.toLowerCase().includes(normalizedSearch) ||
+            channel.group?.toLowerCase().includes(normalizedSearch);
 
       const matchesStatus = !statusFilter || channel.status === statusFilter;
 
       return matchesKeyword && matchesStatus;
     });
   }, [channels, deferredSearch, statusFilter]);
-  
-  const {
-    getItemProps: getRowProps,
-    handleKeyDown: handleTableKeyDown,
-  } = useTVFocus({
-    itemCount: filteredChannels.length,
-    columns: 1,
-    orientation: "vertical",
-    storageKey: "checker-channel-table",
-    onActivate: (index) => setSelectedChannel(filteredChannels[index]),
-    onBack: () => window.history.back(),
-  });
+
+  const { getItemProps: getRowProps, handleKeyDown: handleTableKeyDown } =
+    useTVFocus({
+      itemCount: filteredChannels.length,
+      columns: 1,
+      orientation: "vertical",
+      storageKey: "checker-channel-table",
+      onActivate: (index) => setSelectedChannel(filteredChannels[index]),
+      onBack: () => window.history.back(),
+    });
 
   const checkAllStreams = useCallback(async () => {
-    if (!channels.length) return;
+    if (!filteredChannels.length) return;
     setChecking(true);
     setError(null);
 
-    await checkChannelQueue(channels, {
+    await checkChannelQueue(filteredChannels, {
       concurrency: 3,
       onUpdate: scheduleStatusUpdate,
     });
 
     setChecking(false);
-  }, [channels, scheduleStatusUpdate]);
+  }, [filteredChannels, scheduleStatusUpdate]);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
@@ -185,14 +204,21 @@ export default function IPTVChecker() {
           onSelect={handleSelectPlaylist}
         />
         <div className="rounded-[32px] border border-white/10 bg-slate-950/80 p-5 shadow-xl shadow-black/20">
-          <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">Playlist details</p>
+          <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+            Playlist details
+          </p>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
             <p>
-              Saved playlists remain in local storage and can be loaded from the sidebar.
+              Saved playlists remain in local storage and can be loaded from the
+              sidebar.
             </p>
             <p className="flex flex-wrap gap-3">
-              <span className="rounded-full bg-white/5 px-3 py-1">{channels.length} channels</span>
-              <span className="rounded-full bg-white/5 px-3 py-1">{selectedPlaylistId ? "Saved source" : "Live session"}</span>
+              <span className="rounded-full bg-white/5 px-3 py-1">
+                {channels.length} channels
+              </span>
+              <span className="rounded-full bg-white/5 px-3 py-1">
+                {selectedPlaylistId ? "Saved source" : "Live session"}
+              </span>
             </p>
           </div>
           <button
@@ -210,11 +236,24 @@ export default function IPTVChecker() {
         <div className="rounded-[32px] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-black/20">
           <div className="grid gap-4 md:grid-cols-[1.5fr_0.9fr]">
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">Playlist checker</p>
-              <h1 className="text-2xl font-semibold text-white">Load an M3U playlist</h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-400">
-                Paste a playlist URL, parse channel metadata, and validate each stream without freezing the browser.
+              <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+                Playlist checker
               </p>
+              <h1 className="text-2xl font-semibold text-white">
+                Load an M3U playlist
+              </h1>
+              <p className="max-w-2xl text-sm leading-6 text-slate-400">
+                Paste a playlist URL, parse channel metadata, and validate each
+                stream without freezing the browser.
+              </p>
+              <button
+                type="button"
+                disabled={!channels.length || checking}
+                onClick={checkAllStreams}
+                className="mt-5 w-full rounded-full bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {checking ? "Checking streams..." : "Validate all streams"}
+              </button>
             </div>
             <div className="grid gap-3 rounded-[28px] border border-white/10 bg-slate-900/90 p-4">
               <input
@@ -242,35 +281,52 @@ export default function IPTVChecker() {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+        <div className="grid gap-4 lg:grid-cols-1">
           <div className="space-y-5 rounded-[32px] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-black/20">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">Filters</p>
-                <h2 className="text-lg font-semibold text-white">Find channels quickly</h2>
+                <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+                  Filters
+                </p>
+                <h2 className="text-lg font-semibold text-white">
+                  Find channels quickly
+                </h2>
               </div>
-              <p className="text-sm text-slate-400">Keyword search and status filters keep results sharp.</p>
-            </div>
-
-            <div className="space-y-4">
-              <SearchBar value={search} onChange={setSearch} placeholder="Search channel name, group, or url" />
+              {/* <p className="text-sm text-slate-400">
+                Keyword search and status filters keep results sharp.
+              </p> */}
               <div className="flex flex-wrap gap-2">
                 {STATUS_OPTIONS.map((status) => (
                   <FilterPill
                     key={status}
                     label={status}
                     active={statusFilter === status}
-                    onClick={() => setStatusFilter(statusFilter === status ? "" : status)}
+                    onClick={() =>
+                      setStatusFilter(statusFilter === status ? "" : status)
+                    }
                   />
                 ))}
               </div>
             </div>
+
+            <div className="space-y-4">
+              <SearchBar
+                value={search}
+                onChange={setSearch}
+                placeholder="Search channel name, group, or url"
+              />
+            </div>
           </div>
 
-          <div className="rounded-[32px] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-black/20">
-            <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">Validation</p>
+          {/* <div className="rounded-[32px] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-black/20">
+            <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+              Validation
+            </p>
             <div className="mt-5 space-y-3 text-sm text-slate-300">
-              <p>Check all streams with an async queue so the interface remains responsive.</p>
+              <p>
+                Check all streams with an async queue so the interface remains
+                responsive.
+              </p>
               <p>Statuses update live as each channel is validated.</p>
             </div>
             <button
@@ -281,14 +337,18 @@ export default function IPTVChecker() {
             >
               {checking ? "Checking streams..." : "Validate all streams"}
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="rounded-[32px] border border-white/10 bg-slate-950/80 p-6 shadow-xl shadow-black/20">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">Now playing</p>
-              <h2 className="text-lg font-semibold text-white">Tap a channel to preview</h2>
+              <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+                Now playing
+              </p>
+              <h2 className="text-lg font-semibold text-white">
+                Tap a channel to preview
+              </h2>
             </div>
             {selectedChannel ? (
               <div className="rounded-full bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.35em] text-slate-300">
@@ -298,35 +358,56 @@ export default function IPTVChecker() {
           </div>
           {selectedChannel ? (
             <div className="mt-5">
-              <VideoPlayer src={selectedChannel.url} title={selectedChannel.name} />
+              <VideoPlayer
+                src={selectedChannel.url}
+                title={selectedChannel.name}
+              />
             </div>
           ) : (
             <div className="mt-5 rounded-[28px] border border-dashed border-white/10 bg-slate-900/80 p-8 text-center text-slate-400">
-              Select a channel from the table below to start playback in the embedded player.
+              Select a channel from the table below to start playback in the
+              embedded player.
             </div>
           )}
         </div>
 
-        <div className="overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/80 shadow-xl shadow-black/20" onKeyDown={handleTableKeyDown}>
+        <div
+          className="rounded-[32px] border border-white/10 bg-slate-950/80 shadow-xl shadow-black/20 scrollable max-h-[400px] overflow-y-auto"
+          onKeyDown={handleTableKeyDown}
+        >
           <table className="min-w-full border-separate border-spacing-0 text-left">
             <thead className="bg-slate-900/90 text-slate-300">
               <tr>
-                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">Channel</th>
-                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">Group</th>
-                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">Status</th>
-                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">Logo</th>
+                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">
+                  Channel
+                </th>
+                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">
+                  Group
+                </th>
+                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">
+                  Status
+                </th>
+                <th className="px-4 py-4 text-xs uppercase tracking-[0.35em]">
+                  Logo
+                </th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-400">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-12 text-center text-slate-400"
+                  >
                     Loading playlist...
                   </td>
                 </tr>
               ) : filteredChannels.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-12 text-center text-slate-400">
+                  <td
+                    colSpan={4}
+                    className="px-4 py-12 text-center text-slate-400"
+                  >
                     No channels match your current filters.
                   </td>
                 </tr>
@@ -345,7 +426,9 @@ export default function IPTVChecker() {
                           {channel.name}
                         </span>
                       </td>
-                      <td className="px-4 py-4 text-sm text-slate-400">{channel.group}</td>
+                      <td className="px-4 py-4 text-sm text-slate-400">
+                        {channel.group}
+                      </td>
                       <td className="px-4 py-4">
                         <StatusBadge status={channel.status} />
                       </td>

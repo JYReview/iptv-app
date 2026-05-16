@@ -42,11 +42,11 @@ export default function Home() {
   return (
     <div className="grid gap-8 lg:grid-cols-3 xl:grid-cols-4">
       <div className="space-y-6 lg:col-span-2 xl:col-span-3">
-        <SectionTitle
+        {/* <SectionTitle
           subtitle="Browse channels"
           title="Your smart IPTV dashboard"
           description="Search, filter, and save favourites. Tap a channel to launch the player and enjoy a premium streaming experience built for TV screens."
-        />
+        /> */}
 
         <FilterPanel
           searchTerm={searchTerm}

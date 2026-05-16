@@ -42,7 +42,7 @@ export function parseM3UPlaylist(text) {
     if (!url || !url.startsWith("http")) continue;
 
     result.push({
-      id: attrs["tvg-id"] || `${name}-${i}`,
+      id: crypto.randomUUID(),
       name,
       url,
       logo: extractLogo(attrs),

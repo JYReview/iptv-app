@@ -11,7 +11,10 @@ function ChannelGrid({
   onKeyDown,
 }) {
   const handleSelect = useCallback(
-    (channel) => () => onSelectChannel(channel),
+    (channel) => () => {
+      console.log("Selected channel:", channel);
+      onSelectChannel(channel);
+    },
     [onSelectChannel],
   );
 
@@ -29,7 +32,10 @@ function ChannelGrid({
   }
 
   return (
-    <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3" onKeyDown={onKeyDown}>
+    <div
+      className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 max-h-[60vh] overflow-y-auto pr-2"
+      onKeyDown={onKeyDown}
+    >
       {channels.map((channel, index) => (
         <ChannelCard
           key={channel.id}

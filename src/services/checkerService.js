@@ -85,7 +85,7 @@ export async function checkChannelQueue(channels, options = {}) {
 
       const channel = results[currentIndex];
 
-      onUpdate(currentIndex, "Checking...");
+      onUpdate(channel.id, "Checking...");
 
       try {
         const response = await checkStreamUrl(channel.url);
@@ -104,7 +104,7 @@ export async function checkChannelQueue(channels, options = {}) {
 
         results[currentIndex] = updatedChannel;
 
-        onUpdate(currentIndex, updatedStatus, response);
+        onUpdate(channel.id, updatedStatus, response);
       } catch (error) {
         results[currentIndex] = {
           ...channel,
@@ -112,7 +112,7 @@ export async function checkChannelQueue(channels, options = {}) {
           error: error.message,
         };
 
-        onUpdate(currentIndex, "Not Working", {
+        onUpdate(channel.id, "Not Working", {
           error: error.message,
         });
       }

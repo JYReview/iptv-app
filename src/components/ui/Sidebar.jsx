@@ -11,7 +11,9 @@ function Sidebar({ items = [], title = "Menu", className = "", onKeyDown }) {
       onKeyDown={onKeyDown}
     >
       <div className="mb-5">
-        <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">{title}</p>
+        <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/70">
+          {title}
+        </p>
       </div>
       <div className="space-y-3">
         {items.map((item, index) => (
@@ -29,12 +31,15 @@ function Sidebar({ items = [], title = "Menu", className = "", onKeyDown }) {
                 : "bg-white/5 text-slate-300 hover:bg-white/10",
             )}
           >
-            <span>{item.label}</span>
-            {item.badge ? (
-              <span className="rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.25em] text-slate-300">
-                {item.badge}
-              </span>
-            ) : null}
+            <div className="flex flex-col items-start">
+              <span>{item.label}</span>
+
+              {item.badge ? (
+                <span className="mt-1 rounded-full bg-white/10 px-2 py-1 text-[11px] uppercase tracking-[0.25em] text-slate-300">
+                  {item.badge}
+                </span>
+              ) : null}
+            </div>
           </button>
         ))}
       </div>

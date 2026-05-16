@@ -5,18 +5,15 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function getStoredIndex(storageKey, defaultIndex) {
-  if (typeof window === "undefined" || !storageKey) return defaultIndex;
+function getStoredIndex(storageKey, fallback) {
+  if (typeof window === "undefined" || !storageKey) return fallback;
+
   try {
-    const stored = window.sessionStorage.getItem(storageKey);
-    const parsed = Number(stored);
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
+    const v = Number(sessionStorage.getItem(storageKey));
+    return Number.isFinite(v) ? v : fallback;
   } catch {
-    // ignore storage failures
+    return fallback;
   }
-  return defaultIndex;
 }
 
 export function useTVFocus({
@@ -28,35 +25,68 @@ export function useTVFocus({
   onActivate,
   onBack,
 }) {
-  const itemRefs = useRef([]);
-  const [activeIndex, setActiveIndex] = useState(() => clamp(getStoredIndex(storageKey, initialIndex), 0, Math.max(0, itemCount - 1)));
+  const refs = useRef([]);
 
+  // --- safe initial state
+  const [activeIndex, setActiveIndex] = useState(() => {
+    if (itemCount <= 0) return -1;
+    return clamp(
+      getStoredIndex(storageKey, initialIndex),
+      0,
+      itemCount - 1
+    );
+  });
+
+  // ===============================
+  // 1. FIX INVALID INDEX ON CHANGE
+  // ===============================
   useEffect(() => {
-    if (typeof window === "undefined" || !storageKey) return;
-    try {
-      window.sessionStorage.setItem(storageKey, String(activeIndex));
-    } catch {
-      // ignore storage failures
+    if (itemCount <= 0) {
+      setActiveIndex(-1);
+      refs.current = [];
+      return;
     }
+
+    setActiveIndex((prev) => {
+      const safePrev = Number.isFinite(prev) ? prev : 0;
+      return clamp(safePrev, 0, itemCount - 1);
+    });
+
+    refs.current = refs.current.slice(0, itemCount);
+  }, [itemCount]);
+
+  // ===============================
+  // 2. PERSIST ONLY VALID INDEX
+  // ===============================
+  useEffect(() => {
+    if (!storageKey) return;
+    if (activeIndex < 0) return;
+
+    try {
+      sessionStorage.setItem(storageKey, String(activeIndex));
+    } catch {}
   }, [activeIndex, storageKey]);
 
-  useEffect(() => {
-    if (itemCount > 0 && activeIndex >= itemCount) {
-      setActiveIndex(itemCount - 1);
-    }
-  }, [activeIndex, itemCount]);
-
+  // ===============================
+  // 3. SAFE FOCUS
+  // ===============================
   const focusItem = useCallback(
     (index) => {
-      const nextIndex = clamp(index, 0, Math.max(0, itemCount - 1));
-      setActiveIndex(nextIndex);
+      if (itemCount <= 0) return;
+
+      const safeIndex = clamp(index, 0, itemCount - 1);
+      setActiveIndex(safeIndex);
+
       requestAnimationFrame(() => {
-        itemRefs.current[nextIndex]?.focus();
+        refs.current[safeIndex]?.focus?.();
       });
     },
-    [itemCount],
+    [itemCount]
   );
 
+  // ===============================
+  // 4. KEY NAVIGATION
+  // ===============================
   const handleKeyDown = useCallback(
     (event) => {
       if (isBackKey(event)) {
@@ -67,55 +97,72 @@ export function useTVFocus({
 
       if (isEnterKey(event)) {
         event.preventDefault();
-        onActivate?.(activeIndex);
+        if (activeIndex >= 0) onActivate?.(activeIndex);
         return;
       }
 
-      if (!isArrowKey(event)) {
-        return;
-      }
+      if (!isArrowKey(event)) return;
+      if (itemCount <= 0) return;
 
-      let nextIndex = activeIndex;
+      let next = activeIndex;
+
       switch (event.key) {
         case "ArrowDown":
-          nextIndex = orientation === "grid" ? activeIndex + columns : activeIndex + 1;
+          next =
+            orientation === "grid"
+              ? activeIndex + columns
+              : activeIndex + 1;
           break;
+
         case "ArrowUp":
-          nextIndex = orientation === "grid" ? activeIndex - columns : activeIndex - 1;
+          next =
+            orientation === "grid"
+              ? activeIndex - columns
+              : activeIndex - 1;
           break;
+
         case "ArrowRight":
-          if (orientation === "grid" && (activeIndex + 1) % columns !== 0) {
-            nextIndex = activeIndex + 1;
+          if (
+            orientation === "grid" &&
+            (activeIndex + 1) % columns !== 0
+          ) {
+            next = activeIndex + 1;
           }
           break;
+
         case "ArrowLeft":
-          if (orientation === "grid" && activeIndex % columns !== 0) {
-            nextIndex = activeIndex - 1;
+          if (
+            orientation === "grid" &&
+            activeIndex % columns !== 0
+          ) {
+            next = activeIndex - 1;
           }
-          break;
-        default:
           break;
       }
 
-      nextIndex = clamp(nextIndex, 0, Math.max(0, itemCount - 1));
-      if (nextIndex !== activeIndex) {
+      next = clamp(next, 0, itemCount - 1);
+
+      if (next !== activeIndex) {
         event.preventDefault();
-        focusItem(nextIndex);
+        focusItem(next);
       }
     },
-    [activeIndex, columns, focusItem, itemCount, onActivate, onBack, orientation],
+    [activeIndex, columns, itemCount, orientation, focusItem, onActivate, onBack]
   );
 
+  // ===============================
+  // 5. ITEM PROPS (SAFE + CLEAN)
+  // ===============================
   const getItemProps = useCallback(
     (index) => ({
       ref: (node) => {
-        itemRefs.current[index] = node;
+        refs.current[index] = node;
       },
       tabIndex: index === activeIndex ? 0 : -1,
       onFocus: () => setActiveIndex(index),
-      "aria-selected": index === activeIndex ? true : undefined,
+      "aria-selected": index === activeIndex,
     }),
-    [activeIndex],
+    [activeIndex]
   );
 
   return {

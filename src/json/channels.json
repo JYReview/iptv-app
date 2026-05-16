@@ -122,7 +122,7 @@
   {
     "id": "cctv-4",
     "name": "CCTV 4K",
-    "url": "https://live-play-hls.cctvnews.cctv.com/CCTVChannel/channel_cctv4k_mbd.m3u8?auth_key=1778554800-1-b59134a2ead43d7f783f943c8f535e7bb80c5169575b2e8efcd5b3ddea21b41c-af127e22c348cf2ea2392471fb065017&yid=b59134a2ead43d7f783f943c8f535e7bb80c5169575b2e8efcd5b3ddea21b41c",
+    "url": "http://198.204.240.250:82/live/cctv4k.m3u8",
     "country": "CN",
     "countryName": "China",
     "categories": ["Generic"],
@@ -230,7 +230,7 @@
   {
     "id": "cartoon-network",
     "name": "Cartoon Network",
-    "url": "http://23.237.104.106:8080/USA_CARTOON_NETWORK/index.m3u8",
+    "url": "http://phoneal.qing.mgtv.com/nn_live/nn_x64/dWlwPTEwNi4xNC4zOC41NSZ0ZXJtPTUmcWlkPSZyYXV0aF9lbmFibGU9b2ZmJmNkbmV4X2lkPWFsX3Bob25lMyZjaHM9JmRlZj0xJnM9NTliN2RjYTM5MGQzMGEyYTdjZjYxZTc3NWVjZGI1NzYmdWlkPSZ1dWlkPTcwYTEwODI0ZjNkZmRjNTg4OTQ3ODViMWY1ZTM3MTcwLTZhMGUyNjM3JnY9MiZhcz0wJmVzPTE3Nzg4OTI5MDU,/HNGGMPP360.m3u8",
     "country": "US",
     "countryName": "United States",
     "categories": ["Animation"],
